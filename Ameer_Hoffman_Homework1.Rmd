@@ -1,0 +1,138 @@
+---
+title: "Homework 1"
+author: "Aya Ameer and Ben Hoffman"
+date: "9/7/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Problem 1
+
+##a. Create a combined mpg variable called MPG_Combo which combines 60% of the MPG_City and 40% of the MPG_Highway. Obtain a box plot for MPG_Combo and comment on what the plot tells us about fuel efficiency
+
+```{r}
+setwd("C:/Users/hoffm/Documents/RFiles/Algorithms1")
+
+cars <- read.csv("CARS.csv", header = TRUE)
+
+attach(cars)
+
+mpg_combo = .6*MPG_City+.4*MPG_Highway
+
+boxplot(mpg_combo); points(mean(mpg_combo), col =2)
+```
+
+Based on the box plot, there is a lot of variablity in the fuel efficiency because there are many outliers. But plotting the mean shows that fuel efficiency is close to symmetrical, which is helpful because we have a useful average that will help determine if a particular vehicle has good efficiency.
+
+##b. Obtain box plots for MPG_Combo by Type and comment on any differences you notice between the different vehicle types combined fuel efficiency.
+
+```{r}
+boxplot(mpg_combo~Type, xlab = "Vehicle Type", ylab = "Combined MPG")
+```
+
+The first thing I noticed was the outliers in part a are caused by two vehicle types, SUV and Sedan. Then I noticed the pairs of similar plots based on median values and innerquartile range. SUV and Truck are very similar, as are Sedan and Wagon. Sports category is in between those two groups.
+
+##c. Obtain basic descriptive statistics for Horsepower for all vehicles. Comment on any general features and statistics of the data. Use visual and quantitative methods to comment on whether an assumption of Normality would be reasonable for Horsepower variable.
+
+```{r}
+library (fBasics)
+summary(Horsepower)
+mean(Horsepower)
+var(Horsepower)
+skewness(Horsepower)
+```
+Based on the descriptive statistics, we can determine it is a right-skewed distribution.
+
+```{r}
+hist(Horsepower, xlab = "Horsepower")
+qqnorm(Horsepower); qqline(Horsepower, col = 2)
+
+shapiro.test(Horsepower)
+```
+
+This is confirmed by both the histogram and QQ-plot showing the skewness and non-normal behavior. Also, with a very low p-value, the Shapiro-Wilk test shows a non-normal distribution.
+
+##d.Use visual and quantitative methods to comment on whether an assumption of normality would be reasonable for Horsepower variable by Type, especially for Sports, SUV, and Truck (i.e., check normality of Horsepower from Type of i) Sprots, ii) SUV, and iii) Truck.
+
+```{r}
+hist(Horsepower[Type=='Sports'], xlab = '', main = "Horsepower of Sports Cars")
+hist(Horsepower[Type=='SUV'], xlab = '', main = "Horsepower of SUVs")
+hist(Horsepower[Type=='Truck'], xlab = '', main = "Horsepower of Trucks")
+```
+Based on the histograms, Trucks and Sports Cars are not normal, but SUV is close. So let's check the QQ-plots to make sure.
+
+```{r}
+qqnorm(Horsepower[Type=='Sports'], main= 'Sports QQ-plot'); qqline(Horsepower[Type=='SUV'], col = 2)
+qqnorm(Horsepower[Type=='SUV'],  main= 'SUV QQ-plot'); qqline(Horsepower[Type=='SUV'], col = 2)
+qqnorm(Horsepower[Type=='Truck'],  main= 'Truck QQ-plot'); qqline(Horsepower[Type=='Truck'], col = 2)
+```
+We can see that there are some outliers in each plot that makes the data not follow the normal distribution.
+
+```{r}
+shapiro.test(Horsepower[Type=='Sports'])
+shapiro.test(Horsepower[Type=='SUV'])
+shapiro.test(Horsepower[Type=='Truck'])
+```
+Even thought the SUV test results are close to the .05 significance level, we can determine that none of the vehicles follow a normal distribution.
+
+#Problem 2
+Perform a hypothesis test of whether SUV has different horsepower than Truck, and state your conclusions.
+
+##a. Which test should we perform, and why? Justify your answer based on findings on Exercise 1 (d).
+
+Since we have two samples that are not both from the normal distribution, we need to perform a Wilcoxon rank-sum test.
+
+##b. Specify null and alternative hypotheses.
+
+Ho: The two samples are from the same distribution.
+Ha: The two samples are from different distributions.
+
+##c. State the conclusion based on the test result.
+```{r}
+suv = Horsepower[Type=='SUV']
+truck = Horsepower[Type=='Truck']
+wilcox.test(suv, truck, exact = F, correct = F, conf.int = TRUE)
+```
+Based on the Wilcoxon test giving a large p-value, we don't have enough evidence to reject the null hypothesis. Thus, the two distributions re not significantly different.
+
+#Problem 3
+Perform a hypothesis test -whether Wind in July has a different speed (mph) than Wind in August. 
+
+##a. Which test should we perform, and why? See QQ-plot and perform Shapiro-Wilk test for normality check.
+
+```{r}
+qqnorm(airquality$Wind[airquality$Month==7]); qqline(airquality$Wind[airquality$Month==7], col =2)
+
+qqnorm(airquality$Wind[airquality$Month==8]); qqline(airquality$Wind[airquality$Month==8], col =2)
+```
+The two QQ plots show a tendency towards normal, but we need to verify with the Shapiro test.
+
+```{r}
+shapiro.test(airquality$Wind[airquality$Month==7])
+shapiro.test(airquality$Wind[airquality$Month==8])
+```
+Since both have p-values greater than .05, we can determine that the are both normal.
+
+So now we need to check for similarity of variance to see which kind of two-sample t-test to use.
+
+```{r}
+july = airquality$Wind[airquality$Month==7]
+august = airquality$Wind[airquality$Month==8]
+var.test(july, august)
+```
+With a p-value of .74, we can conclude that they have the same variance. Thus, we will use the pooled t-test to determine the outcome.
+
+##b. Specify null and alternative hypotheses
+
+Ho: The average wind speed for July and August are the same
+Ha: The Average wind speed is different
+
+##c. State the conclusion based on the test result.
+
+```{r}
+t.test(july, august, alternative = "two.sided", var.equal = T)
+```
+According to the pooled t-test resulting in a large p-value, we can determine that the wind speed is the same in both months.
